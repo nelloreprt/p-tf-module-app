@@ -70,11 +70,14 @@ launch_template {
   }
 }
 
-# step-3
+# step-3 Security_Group for ASG(instances)
 resource "aws_security_group" "allowall" {
   name        = "${var.component}-${var.env}-security_group"
   description = "${var.component}-${var.env}-security_group"
   vpc_id      = var.vpc_id
+
+  # attaching target_group to auto_scaling_group
+  alb_target_group_arn = ["aws_lb_target_group.main.arn"]
 
   ingress {
     description      = "SSH"
@@ -102,3 +105,66 @@ resource "aws_security_group" "allowall" {
   tags = {
     merge (var.tags, Name = "${var.component}-${var.env}-security-group")
 }
+}
+
+# create Target_group
+resource "aws_lb_target_group" "main" {
+   name     = "${var.component}-${var.env}-target-group"
+   port     = var.port
+   protocol = "HTTP"
+   vpc_id   = var.vpc_id
+
+   # In the Target_Groups we will have Healt_Check Option
+   health_check {
+   enabled = true
+   healthy_threshold = 2
+   unhealthy_threshold = 2
+   timeout = 5
+   interval = 5
+      }
+
+   tags = {
+     merge (var.tags, Name = "${var.component}-${var.env}-target-group")
+    }
+
+
+
+#    I.e Load_Balancer name we will give in C_Name reord
+#    using CNAME of Route53 >> cname = name to name
+#    Note: so far we know [DNS_Records name to ip_address]
+#    This is how you wil send traffic to load_balancer
+# So if any one hitting from internet with dev.nellore.online
+# it will be allowed to access the (Public_LB + Private_LB) (as the rule is matching)
+resource "aws_route53_record" "name" {
+    zone_id = data.aws_route53_zone.domain.zone_id      # input >> dns_domain = "nellore.online"
+    name    = ${var.component}-${var.env}-${var.dns_domain}              # catalogue-dev-nelllore.online
+    type    = "CNAME"
+    ttl     = 30
+    records = var.alb_records    # hitting from internet with dev.nellore.online >> allowed to access the (Public_LB + Private_LB)
+                                 # cname = name to name
+}
+
+# adding rule in Listner----------------------------------------------------------
+
+# Forward action
+resource "aws_lb_listener_rule" "listner_rule" {
+      listener_arn = var.listener_arn # from output >> module.alb
+      priority     = var.listener_priority   # order of listener >> from input "listener_priority = 10"
+      # multiple_rules are there,
+      # so, to process the order of listener_RULES in order one after the other based on Listener_Priority_number
+      # same Listener_Priority_number can be alloted to Public_LB & Private_LB
+      # Listener_Priority_number order does not matter for us
+
+      # step-2
+      action {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.main.arn
+      }
+
+      # step-1
+      condition {
+      host_header {
+      values = ["${var.component}-${var.env}-${var.dns_domain}"]  # dns_name from >> "aws_route53_record.name"
+      }
+      }
+    }
