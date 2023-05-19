@@ -4,3 +4,6 @@ data "aws_ami" "ami" {
   owners           = ["self"]
 
 }
+
+# to get >> peer_owner_id
+data "aws_caller_identity" "account" {}
