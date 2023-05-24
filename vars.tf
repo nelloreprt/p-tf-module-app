@@ -21,3 +21,5 @@ variable "alb_records" {}
 
 variable "listener_arn" {}
 variable "listener_priority" {}
+
+variable "parameters" {}

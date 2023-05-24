@@ -16,7 +16,22 @@ resource "aws_iam_policy" "main" {
           "ssm:GetParameters",
           "ssm:GetParameter"
         ],
-        Resource : ["arn:aws:ssm:us-east-1:${data.aws_caller_identity.account.account_id}:parameter/${var.env}.${var.component}*"]
+#        Resource : ["arn:aws:ssm:us-east-1:${data.aws_caller_identity.account.account_id}:parameter/${var.env}.${var.component}*",  # for FRONTEND
+#          "arn:aws:ssm:us-east-1:${data.aws_caller_identity.account.account_id}:parameter/${var.env}.docdb.*"    # for USER+CATALOGUE
+#          "arn:aws:ssm:us-east-1:${data.aws_caller_identity.account.account_id}:parameter/${var.env}.elasticache.*"  # for USER
+#          # dev.catalogue.nellore.online, dev.docdb.nellore.online
+#
+#          # as the permissions are created inside app, all components will have access to all parameters,
+#          # so we have to control this from input_side (main.tfvars) (SECURITY _ POINT of view)
+#          # every component does not require DOCDB information
+#          # every component does not require elasticache information
+#        ]
+
+  Resource : [for k in local.parameters : "arn:aws:ssm:us-east-1:${data.aws_caller_identity.account.account_id}:parameter/${var.env}.${k}.*"]
+        # local.parameters is a List of values,
+        # passing the values to STRING with $k_value.
+        # string >> arn:aws:ssm:us-east-1:${data.aws_caller_identity.account.account_id}:parameter/${var.env}.${k}.*
+        # this is the iteration location >> " .${k}.* "
       },
       {
         "Sid" : "VisualEditor1",

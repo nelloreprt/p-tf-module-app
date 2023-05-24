@@ -107,7 +107,7 @@ resource "aws_security_group" "allowall" {
 }
 }
 
-# create Target_group
+# create Target_group >> inside ASG (because the servers are created by ASG)
 resource "aws_lb_target_group" "main" {
    name     = "${var.component}-${var.env}-target-group"
    port     = var.port
@@ -129,8 +129,8 @@ resource "aws_lb_target_group" "main" {
 
 
 
-#    I.e Load_Balancer name we will give in C_Name reord
-#    using CNAME of Route53 >> cname = name to name
+#    I.e Load_Balancer name we will give in C_Name record
+#    using CNAME of Route53 >> cname = name to name mapping
 #    Note: so far we know [DNS_Records name to ip_address]
 #    This is how you wil send traffic to load_balancer
 # So if any one hitting from internet with dev.nellore.online
@@ -144,7 +144,7 @@ resource "aws_route53_record" "name" {
                                  # cname = name to name
 }
 
-# adding rule in Listner----------------------------------------------------------
+# adding rule in Listner----(this is Listener, listener is different vs Listener_rule is different)---------
 
 # Forward action
 resource "aws_lb_listener_rule" "listner_rule" {
